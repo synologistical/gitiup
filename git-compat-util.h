@@ -1502,7 +1502,7 @@ static inline int is_missing_file_error(int errno_)
 #endif
 
 #ifndef is_fscache_enabled
-#define is_fscache_enabled() (0)
+#define is_fscache_enabled(path) (0)
 #endif
 
 #ifndef GIT_STD_LIB
