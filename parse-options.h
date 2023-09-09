@@ -158,6 +158,8 @@ struct option {
 	parse_opt_ll_cb *ll_callback;
 	intptr_t extra;
 	parse_opt_subcommand_fn *subcommand_fn;
+
+	int *value_int;
 };
 
 #define OPT_BIT_F(s, l, v, h, b, f) { \
