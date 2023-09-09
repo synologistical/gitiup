@@ -51,6 +51,10 @@ ifdef::git-log[]
 Note: This option not implying `-p` is legacy feature that is
 preserved for the sake of backward compatibility.
 
+-d::
+	Produce diff with respect to first parent.
+	Shortcut for '--diff-merges=first-parent -p'.
+
 -c::
 	Produce combined diff output for merge commits.
 	Shortcut for '--diff-merges=combined -p'.
