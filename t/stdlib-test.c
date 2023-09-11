@@ -101,7 +101,7 @@ void strbuf_funcs(void) {
 	strbuf_addbuf(sb, sb2);
 	strbuf_join_argv(sb, 0, NULL, ' ');
 	strbuf_addchars(sb, 1, 1);
-	strbuf_addf(sb, "%s", "foo");
+	strbuf_addstr(sb, "foo");
 	strbuf_add_commented_lines(sb, "foo", 3, '#');
 	strbuf_commented_addf(sb, '#', "%s", "foo");
 	// strbuf_vaddf() called by strbuf_addf()
