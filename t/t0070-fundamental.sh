@@ -97,7 +97,7 @@ test_expect_success 'unpack-sideband with demultiplex_sideband(), no chomp newli
 	test_cmp expect-err err
 '
 
-test_expect_failure 'unpack-sideband with demultiplex_sideband(), chomp newline' '
+test_expect_success 'unpack-sideband with demultiplex_sideband(), chomp newline' '
 	test_when_finished "rm -f expect-out expect-err" &&
 	test-tool pkt-line send-split-sideband >split-sideband &&
 	test-tool pkt-line unpack-sideband \
