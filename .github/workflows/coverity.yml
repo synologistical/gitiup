@@ -83,7 +83,7 @@ jobs:
                    --form md5=1)
           case $? in
           0) ;; # okay
-          *22*) # 40x, i.e. access denied
+          22) # 40x, i.e. access denied
             echo "::error::incorrect token or project?" >&2
             exit 1
             ;;
