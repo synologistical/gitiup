@@ -38,13 +38,15 @@ struct trailer_info {
 
 	/*
 	 * Offsets to the trailer block start and end positions in the input
-	 * string. If no trailer block is found, these are both set to the
-	 * "true" end of the input, per find_true_end_of_input().
-	 *
-	 * NOTE: This will be changed so that these point to 0 in the next
-	 * patch if no trailers are found.
+	 * string. If no trailer block is found, these are set to 0.
 	 */
 	size_t trailer_block_start, trailer_block_end;
+
+	/*
+	 * Offset to the end of the log message in the input (may not be the
+	 * same as the end of the input).
+	 */
+	size_t end_of_log_message;
 
 	/*
 	 * Array of trailers found.

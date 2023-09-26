@@ -1083,9 +1083,14 @@ void process_trailers(const char *file,
 
 	parse_trailers(&info, sb.buf, &head, opts);
 
-	/* Print the lines before the trailers */
-	if (!opts->only_trailers)
-		fwrite(sb.buf, 1, info.trailer_block_start, outfile);
+	/* Print the lines before the trailers (if any) as is. */
+	if (!opts->only_trailers) {
+		if (info.trailer_nr) {
+			fwrite(sb.buf, 1, info.trailer_block_start, outfile);
+		} else {
+			fwrite(sb.buf, 1, info.end_of_log_message, outfile);
+		}
+	}
 
 	if (!opts->only_trailers && !info.blank_line_before_trailer)
 		fprintf(outfile, "\n");
@@ -1105,9 +1110,14 @@ void process_trailers(const char *file,
 	free_all(&head);
 	trailer_info_release(&info);
 
-	/* Print the lines after the trailers as is */
-	if (!opts->only_trailers)
-		fwrite(sb.buf + info.trailer_block_end, 1, sb.len - info.trailer_block_end, outfile);
+	/* Print the lines after the trailers (if any) as is. */
+	if (!opts->only_trailers) {
+		if (info.trailer_nr) {
+			fwrite(sb.buf + info.trailer_block_end, 1, sb.len - info.trailer_block_end, outfile);
+		} else {
+			fwrite(sb.buf + info.end_of_log_message, 1, sb.len - info.end_of_log_message, outfile);
+		}
+	}
 
 	if (opts->in_place)
 		if (rename_tempfile(&trailers_tempfile, file))
@@ -1153,8 +1163,13 @@ void trailer_info_get(struct trailer_info *info, const char *str,
 
 	info->blank_line_before_trailer = ends_with_blank_line(str,
 							       trailer_block_start);
-	info->trailer_block_start = trailer_block_start;
-	info->trailer_block_end = end_of_log_message;
+	info->trailer_block_start = 0;
+	info->trailer_block_end = 0;
+	if (nr) {
+		info->trailer_block_start = trailer_block_start;
+		info->trailer_block_end = end_of_log_message;
+	}
+	info->end_of_log_message = end_of_log_message;
 	info->trailers = trailer_strings;
 	info->trailer_nr = nr;
 }
