@@ -4,6 +4,7 @@
 
 #include "git-compat-util.h"
 #include "mem-pool.h"
+#include "gettext.h"
 #include "trace.h"
 
 static struct trace_key trace_mem_pool = TRACE_KEY_INIT(MEMPOOL);
@@ -132,7 +133,7 @@ static char *mem_pool_strvfmt(struct mem_pool *pool, const char *fmt,
 	len = vsnprintf(next_free, available, fmt, cp);
 	va_end(cp);
 	if (len < 0)
-		BUG("your vsnprintf is broken (returned %d)", len);
+		die(_("unable to format message: %s"), fmt);
 
 	size = st_add(len, 1); /* 1 for NUL */
 	ret = mem_pool_alloc(pool, size);

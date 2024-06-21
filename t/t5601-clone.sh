@@ -7,6 +7,16 @@ export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
 
 . ./test-lib.sh
 
+# This test script contains test cases that need to create symbolic links. To
+# make sure that these test cases are exercised in Git for Windows, where (for
+# historical reasons) `ln -s` creates copies by default, let's specifically ask
+# for `ln -s` to create symbolic links whenever possible.
+if test_have_prereq MINGW
+then
+	MSYS=${MSYS+$MSYS }winsymlinks:nativestrict
+	export MSYS
+fi
+
 X=
 test_have_prereq !MINGW || X=.exe
 
@@ -655,6 +665,21 @@ test_expect_success CASE_INSENSITIVE_FS 'colliding file detection' '
 	grep X icasefs/warning &&
 	grep x icasefs/warning &&
 	test_grep "the following paths have collided" icasefs/warning
+'
+
+test_expect_success CASE_INSENSITIVE_FS,SYMLINKS \
+		'colliding symlink/directory keeps directory' '
+	git init icasefs-colliding-symlink &&
+	(
+		cd icasefs-colliding-symlink &&
+		a=$(printf a | git hash-object -w --stdin) &&
+		printf "100644 %s 0\tA/dir/b\n120000 %s 0\ta\n" $a $a >idx &&
+		git update-index --index-info <idx &&
+		test_tick &&
+		git commit -m initial
+	) &&
+	git clone icasefs-colliding-symlink icasefs-colliding-symlink-clone &&
+	test_file_not_empty icasefs-colliding-symlink-clone/A/dir/b
 '
 
 test_expect_success 'clone with GIT_DEFAULT_HASH' '
