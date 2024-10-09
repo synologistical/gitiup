@@ -5,6 +5,7 @@ test_description="test smart fetching over http via http-backend ($HTTP_PROTO)"
 GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME=main
 export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
 
+TEST_PASSES_SANITIZE_LEAK=true
 . ./test-lib.sh
 . "$TEST_DIRECTORY"/lib-httpd.sh
 test "$HTTP_PROTO" = "HTTP/2" && enable_http2
@@ -184,6 +185,28 @@ test_expect_success 'clone from password-protected repository' '
 	expect_askpass both user@host &&
 	git --git-dir=smart-auth log -1 --format=%s >actual &&
 	test_cmp expect actual
+'
+
+test_expect_success 'credential.interactive=false skips askpass' '
+	set_askpass bogus nonsense &&
+	(
+		GIT_TRACE2_EVENT="$(pwd)/interactive-true" &&
+		export GIT_TRACE2_EVENT &&
+		test_must_fail git clone --bare "$HTTPD_URL/auth/smart/repo.git" interactive-true-dir &&
+		test_region credential interactive interactive-true &&
+
+		GIT_TRACE2_EVENT="$(pwd)/interactive-false" &&
+		export GIT_TRACE2_EVENT &&
+		test_must_fail git -c credential.interactive=false \
+			clone --bare "$HTTPD_URL/auth/smart/repo.git" interactive-false-dir &&
+		test_region ! credential interactive interactive-false &&
+
+		GIT_TRACE2_EVENT="$(pwd)/interactive-never" &&
+		export GIT_TRACE2_EVENT &&
+		test_must_fail git -c credential.interactive=never \
+			clone --bare "$HTTPD_URL/auth/smart/repo.git" interactive-never-dir &&
+		test_region ! credential interactive interactive-never
+	)
 '
 
 test_expect_success 'clone from auth-only-for-push repository' '
@@ -381,7 +404,15 @@ test_expect_success CMDLINE_LIMIT \
 	)
 '
 
-test_expect_success 'large fetch-pack requests can be sent using chunked encoding' '
+# This is a temporary work-around for libcurl v8.10.0 on the macos-* runners;
+# see https://github.com/git-for-windows/git/issues/5159 for full details
+test_lazy_prereq UNBROKEN_HTTP2 '
+	test "$HTTP_PROTO" = HTTP/2 &&
+	test -z "$(brew info -q curl 2>/dev/null |
+		sed -n "/^Installed/{N;s/.*8\\.10\\.0.*/BROKEN HTTP2/p;}")"
+'
+
+test_expect_success UNBROKEN_HTTP2 'large fetch-pack requests can be sent using chunked encoding' '
 	GIT_TRACE_CURL=true git -c http.postbuffer=65536 \
 		clone --bare "$HTTPD_URL/smart/repo.git" split.git 2>err &&
 	{

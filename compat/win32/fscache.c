@@ -88,9 +88,9 @@ struct heap_fsentry {
 /*
  * Compares the paths of two fsentry structures for equality.
  */
-static int fsentry_cmp(void *unused_cmp_data,
+static int fsentry_cmp(void *cmp_data UNUSED,
 		       const struct fsentry *fse1, const struct fsentry *fse2,
-		       void *unused_keydata)
+		       void *keydata UNUSED)
 {
 	int res;
 	if (fse1 == fse2)

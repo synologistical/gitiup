@@ -5,6 +5,7 @@ test_description='git partial clone'
 GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME=main
 export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
 
+TEST_PASSES_SANITIZE_LEAK=true
 . ./test-lib.sh
 
 # create a normal "src" repo where we can later create new commits.
@@ -229,7 +230,7 @@ test_expect_success 'fetch --refetch triggers repacking' '
 
 	GIT_TRACE2_EVENT="$PWD/trace1.event" \
 	git -C pc1 fetch --refetch origin &&
-	test_subcommand git maintenance run --auto --no-quiet <trace1.event &&
+	test_subcommand git maintenance run --auto --no-quiet --detach <trace1.event &&
 	grep \"param\":\"gc.autopacklimit\",\"value\":\"1\" trace1.event &&
 	grep \"param\":\"maintenance.incremental-repack.auto\",\"value\":\"-1\" trace1.event &&
 
@@ -238,7 +239,7 @@ test_expect_success 'fetch --refetch triggers repacking' '
 		-c gc.autoPackLimit=0 \
 		-c maintenance.incremental-repack.auto=1234 \
 		-C pc1 fetch --refetch origin &&
-	test_subcommand git maintenance run --auto --no-quiet <trace2.event &&
+	test_subcommand git maintenance run --auto --no-quiet --detach <trace2.event &&
 	grep \"param\":\"gc.autopacklimit\",\"value\":\"0\" trace2.event &&
 	grep \"param\":\"maintenance.incremental-repack.auto\",\"value\":\"-1\" trace2.event &&
 
@@ -247,7 +248,7 @@ test_expect_success 'fetch --refetch triggers repacking' '
 		-c gc.autoPackLimit=1234 \
 		-c maintenance.incremental-repack.auto=0 \
 		-C pc1 fetch --refetch origin &&
-	test_subcommand git maintenance run --auto --no-quiet <trace3.event &&
+	test_subcommand git maintenance run --auto --no-quiet --detach <trace3.event &&
 	grep \"param\":\"gc.autopacklimit\",\"value\":\"1\" trace3.event &&
 	grep \"param\":\"maintenance.incremental-repack.auto\",\"value\":\"0\" trace3.event
 '
@@ -515,7 +516,18 @@ test_expect_success 'fetch lazy-fetches only to resolve deltas' '
 	# Exercise to make sure it works. Git will not fetch anything from the
 	# promisor remote other than for the big tree (because it needs to
 	# resolve the delta).
-	GIT_TRACE_PACKET="$(pwd)/trace" git -C client \
+	#
+	# TODO: the --full-name-hash option is disabled here, since this test
+	# is fundamentally broken! When GIT_TEST_FULL_NAME_HASH=1, the server
+	# recognizes delta bases in a different way and then sends a _blob_ to
+	# the client with a delta base that the client does not have! This is
+	# because the client is cloned from "promisor-server" with tree:0 but
+	# is now fetching from "server" withot any filter. This is violating the
+	# promise to the server that all reachable objects exist and could be
+	# used as delta bases!
+	GIT_TRACE_PACKET="$(pwd)/trace" \
+	GIT_TEST_FULL_NAME_HASH=0 \
+		git -C client \
 		fetch "file://$(pwd)/server" main &&
 
 	# Verify the assumption that the client needed to fetch the delta base
@@ -534,7 +546,18 @@ test_expect_success 'fetch lazy-fetches only to resolve deltas, protocol v2' '
 	# Exercise to make sure it works. Git will not fetch anything from the
 	# promisor remote other than for the big blob (because it needs to
 	# resolve the delta).
-	GIT_TRACE_PACKET="$(pwd)/trace" git -C client \
+	#
+	# TODO: the --full-name-hash option is disabled here, since this test
+	# is fundamentally broken! When GIT_TEST_FULL_NAME_HASH=1, the server
+	# recognizes delta bases in a different way and then sends a _blob_ to
+	# the client with a delta base that the client does not have! This is
+	# because the client is cloned from "promisor-server" with tree:0 but
+	# is now fetching from "server" withot any filter. This is violating the
+	# promise to the server that all reachable objects exist and could be
+	# used as delta bases!
+	GIT_TRACE_PACKET="$(pwd)/trace" \
+	GIT_TEST_FULL_NAME_HASH=0 \
+		git -C client \
 		fetch "file://$(pwd)/server" main &&
 
 	# Verify that protocol version 2 was used.

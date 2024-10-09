@@ -9,6 +9,7 @@
 /GIT-PYTHON-VARS
 /GIT-SCRIPT-DEFINES
 /GIT-SPATCH-DEFINES
+/GIT-TEST-SUITES
 /GIT-USER-AGENT
 /GIT-VERSION-FILE
 /bin-wrappers/
@@ -19,6 +20,7 @@
 /git-apply
 /git-archimport
 /git-archive
+/git-backfill
 /git-bisect
 /git-blame
 /git-branch
@@ -164,6 +166,7 @@
 /git-submodule
 /git-submodule--helper
 /git-subtree
+/git-survey
 /git-svn
 /git-switch
 /git-symbolic-ref

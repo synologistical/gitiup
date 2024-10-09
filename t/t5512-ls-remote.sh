@@ -5,6 +5,7 @@ test_description='git ls-remote'
 GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME=main
 export GIT_TEST_DEFAULT_INITIAL_BRANCH_NAME
 
+TEST_PASSES_SANITIZE_LEAK=true
 . ./test-lib.sh
 
 generate_references () {
@@ -405,6 +406,7 @@ test_expect_success 'v0 clients can handle multiple symrefs' '
 test_expect_success 'helper with refspec capability fails gracefully' '
 	mkdir test-bin &&
 	write_script test-bin/git-remote-foo <<-EOF &&
+	read capabilities
 	echo import
 	echo refspec ${SQ}*:*${SQ}
 	EOF

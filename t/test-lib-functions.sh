@@ -926,7 +926,8 @@ test_expect_success () {
 		test_body_or_stdin test_body "$2"
 		test -n "$test_skip_test_preamble" ||
 		say >&3 "expecting success of $TEST_NUMBER.$test_count '$1': $test_body"
-		if test_run_ "$test_body"
+		if test_run_ "$test_body" &&
+		   check_test_results_san_file_empty_
 		then
 			test_ok_ "$1"
 		else
@@ -1876,6 +1877,33 @@ test_subcommand () {
 
 	local expr="$(printf '"%s",' "$@")"
 	expr="${expr%,}"
+
+	if test -n "$negate"
+	then
+		! grep "\[$expr\]"
+	else
+		grep "\[$expr\]"
+	fi
+}
+
+
+# Check that the given subcommand was run with the given set of
+# arguments in order (but with possible extra arguments).
+#
+#	test_subcommand_flex [!] <command> <args>... < <trace>
+#
+# If the first parameter passed is !, this instead checks that
+# the given command was not called.
+#
+test_subcommand_flex () {
+	local negate=
+	if test "$1" = "!"
+	then
+		negate=t
+		shift
+	fi
+
+	local expr="$(printf '"%s".*' "$@")"
 
 	if test -n "$negate"
 	then

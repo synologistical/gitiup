@@ -197,6 +197,19 @@ struct strbuf;
 #define _NETBSD_SOURCE 1
 #define _SGI_SOURCE 1
 
+/*
+ * UNUSED marks a function parameter that is always unused.  It also
+ * can be used to annotate a function, a variable, or a type that is
+ * always unused.
+ *
+ * A callback interface may dictate that a function accepts a
+ * parameter at that position, but the implementation of the function
+ * may not need to use the parameter.  In such a case, mark the parameter
+ * with UNUSED.
+ *
+ * When a parameter may be used or unused, depending on conditional
+ * compilation, consider using MAYBE_UNUSED instead.
+ */
 #if GIT_GNUC_PREREQ(4, 5)
 #define UNUSED __attribute__((unused)) \
 	__attribute__((deprecated ("parameter declared as UNUSED")))
@@ -529,7 +542,8 @@ static inline int git_offset_1st_component(const char *path)
 #endif
 
 #ifndef warn_about_git_lfs_on_windows7
-static inline void warn_about_git_lfs_on_windows7(int exit_code, const char *argv0)
+static inline void warn_about_git_lfs_on_windows7(int exit_code UNUSED,
+						  const char *argv0 UNUSED)
 {
 }
 #endif
@@ -629,7 +643,8 @@ static inline int git_has_dir_sep(const char *path)
 
 #ifndef create_symlink
 struct index_state;
-static inline int git_create_symlink(struct index_state *index, const char *target, const char *link)
+static inline int git_create_symlink(struct index_state *index UNUSED,
+				     const char *target, const char *link)
 {
 	return symlink(target, link);
 }
@@ -686,6 +701,17 @@ static inline int git_create_symlink(struct index_state *index, const char *targ
 #define RESULT_MUST_BE_USED
 #endif
 
+/*
+ * MAYBE_UNUSED marks a function parameter that may be unused, but
+ * whose use is not an error.  It also can be used to annotate a
+ * function, a variable, or a type that may be unused.
+ *
+ * Depending on a configuration, all uses of such a thing may become
+ * #ifdef'ed away.  Marking it with UNUSED would give a warning in a
+ * compilation where it is indeed used, and not marking it at all
+ * would give a warning in a compilation where it is unused.  In such
+ * a case, MAYBE_UNUSED is the appropriate annotation to use.
+ */
 #define MAYBE_UNUSED __attribute__((__unused__))
 
 #include "compat/bswap.h"

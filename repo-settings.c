@@ -1,9 +1,8 @@
 #include "git-compat-util.h"
 #include "config.h"
+#include "repo-settings.h"
 #include "repository.h"
 #include "midx.h"
-#include "fsmonitor-ipc.h"
-#include "fsmonitor-settings.h"
 
 static void repo_cfg_bool(struct repository *r, const char *key, int *dest,
 			  int def)
@@ -21,6 +20,7 @@ static void repo_cfg_int(struct repository *r, const char *key, int *dest,
 
 void prepare_repo_settings(struct repository *r)
 {
+	const struct repo_settings defaults = REPO_SETTINGS_INIT;
 	int experimental;
 	int value;
 	const char *strval;
@@ -30,13 +30,11 @@ void prepare_repo_settings(struct repository *r)
 	if (!r->gitdir)
 		BUG("Cannot add settings for uninitialized repository");
 
-	if (r->settings.initialized++)
+	if (r->settings.initialized)
 		return;
 
-	/* Defaults */
-	r->settings.index_version = -1;
-	r->settings.core_untracked_cache = UNTRACKED_CACHE_KEEP;
-	r->settings.fetch_negotiation_algorithm = FETCH_NEGOTIATION_CONSECUTIVE;
+	memcpy(&r->settings, &defaults, sizeof(defaults));
+	r->settings.initialized++;
 
 	/* Booleans config or default, cascades to other settings */
 	repo_cfg_bool(r, "feature.manyfiles", &manyfiles, 0);
@@ -47,35 +45,13 @@ void prepare_repo_settings(struct repository *r)
 		r->settings.fetch_negotiation_algorithm = FETCH_NEGOTIATION_SKIPPING;
 		r->settings.pack_use_bitmap_boundary_traversal = 1;
 		r->settings.pack_use_multi_pack_reuse = 1;
-
-		/*
-		 * Force enable the builtin FSMonitor (unless the repo
-		 * is incompatible or they've already selected it or
-		 * the hook version).  But only if they haven't
-		 * explicitly turned it off -- so only if our config
-		 * value is UNSET.
-		 *
-		 * lookup_fsmonitor_settings() and check_for_ipc() do
-		 * not distinguish between explicitly set FALSE and
-		 * UNSET, so we re-test for an UNSET config key here.
-		 *
-		 * I'm not sure I want to fix fsmonitor-settings.c to
-		 * have more than one _DISABLED state since our usage
-		 * here is only to support this experimental period
-		 * (and I don't want to overload the _reason field
-		 * because it describes incompabilities).
-		 */
-		if (manyfiles &&
-		    fsmonitor_ipc__is_supported()  &&
-		    fsm_settings__get_mode(r) == FSMONITOR_MODE_DISABLED &&
-		    repo_config_get_maybe_bool(r, "core.fsmonitor", &value) > 0 &&
-		    repo_config_get_bool(r, "core.useBuiltinFSMonitor", &value))
-			fsm_settings__set_ipc(r);
+		r->settings.pack_use_path_walk = 1;
 	}
 	if (manyfiles) {
 		r->settings.index_version = 4;
 		r->settings.index_skip_hash = 1;
 		r->settings.core_untracked_cache = UNTRACKED_CACHE_WRITE;
+		r->settings.pack_use_path_walk = 1;
 	}
 
 	/* Commit graph config or default, does not cascade (simple) */
@@ -90,6 +66,7 @@ void prepare_repo_settings(struct repository *r)
 
 	/* Boolean config or default, does not cascade (simple)  */
 	repo_cfg_bool(r, "pack.usesparse", &r->settings.pack_use_sparse, 1);
+	repo_cfg_bool(r, "pack.usepathwalk", &r->settings.pack_use_path_walk, 0);
 	repo_cfg_bool(r, "core.multipackindex", &r->settings.core_multi_pack_index, 1);
 	repo_cfg_bool(r, "index.sparse", &r->settings.sparse_index, 0);
 	repo_cfg_bool(r, "index.skiphash", &r->settings.index_skip_hash, r->settings.index_skip_hash);
@@ -149,4 +126,29 @@ void prepare_repo_settings(struct repository *r)
 	 * removed.
 	 */
 	r->settings.command_requires_full_index = 1;
+}
+
+enum log_refs_config repo_settings_get_log_all_ref_updates(struct repository *repo)
+{
+	const char *value;
+
+	if (!repo_config_get_string_tmp(repo, "core.logallrefupdates", &value)) {
+		if (value && !strcasecmp(value, "always"))
+			return LOG_REFS_ALWAYS;
+		else if (git_config_bool("core.logallrefupdates", value))
+			return LOG_REFS_NORMAL;
+		else
+			return LOG_REFS_NONE;
+	}
+
+	return LOG_REFS_UNSET;
+}
+
+int repo_settings_get_warn_ambiguous_refs(struct repository *repo)
+{
+	prepare_repo_settings(repo);
+	if (repo->settings.warn_ambiguous_refs < 0)
+		repo_cfg_bool(repo, "core.warnambiguousrefs",
+			      &repo->settings.warn_ambiguous_refs, 1);
+	return repo->settings.warn_ambiguous_refs;
 }
